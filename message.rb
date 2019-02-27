@@ -27,8 +27,6 @@ require 'pp'
 require_relative 'includes/send'
 
 class Condition < Riddl::Implementation
-  include Send
-
   def response
     redis = @a[0]
     mess  = "message:" + @p[0].value
@@ -36,7 +34,7 @@ class Condition < Riddl::Implementation
     if redis.exists(mess)
       val = redis.get(mess)
       redis.del(mess)
-      send @h['CPEE_CALLBACK'], val
+      SendCallback::send @h['CPEE_CALLBACK'], val
     else
       uuid = SecureRandom.uuid
       redis.multi
@@ -54,8 +52,6 @@ class Condition < Riddl::Implementation
 end
 
 class DeleteCondition < Riddl::Implementation
-  include Send
-
   def response
     redis = @a[0]
     uuid = @p[0].value
@@ -71,20 +67,18 @@ class DeleteCondition < Riddl::Implementation
     redis.lrem("condition:#{cond}",0,uuid)
     redis.exec
 
-    send(cb,'','deleted')
+    SendCallback::send cb, '', 'deleted'
   end
 end
 
 class Message < Riddl::Implementation #{{{
-  include Send
-
   def response
     redis = @a[0]
     cond  = "condition:" + @p[0].value
 
     if redis.exists(cond)
       while uuid = redis.lpop(cond)
-        send redis.get("value:#{uuid}"), @p[1].value
+        SendCallback::send redis.get("value:#{uuid}"), @p[1].value
         redis.del("value:#{uuid}")
       end
     else

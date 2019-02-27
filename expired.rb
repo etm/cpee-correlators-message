@@ -23,8 +23,6 @@ require 'daemonite'
 
 require_relative 'includes/send'
 
-include Send
-
 Daemonite.new do |opts|
   redis = Redis.new(path: "/tmp/redis.sock", db: 10)
 
@@ -43,7 +41,7 @@ Daemonite.new do |opts|
       redis.lrem("condition:#{cond}",0,uuid)
       redis.exec
 
-      send(cb,'','expired')
+      SendCallback::send cb, '', 'expired'
     end
     sleep 1
   end
