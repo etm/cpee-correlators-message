@@ -20,24 +20,30 @@
   <message name="message">
     <parameter name="id" type="string"/>
     <parameter name="message" type="string"/>
-    <parameter name="timeout" type="positiveInteger"/>
+    <parameter name="ttl" type="nonNegativeInteger"/>
   </message>
 
   <message name="criteria">
     <parameter name="id" type="string"/>
-    <parameter name="timeout" type="positiveInteger"/>
+    <parameter name="ttl" type="nonNegativeInteger"/>
   </message>
-  <message name="criteria_del">
-    <parameter name="id" type="string"/>
+  <message name="slot">
+    <choice>
+      <parameter name="message" mimetype="application/json"/>
+      <parameter name="slotid" type="string"/>
+    </choice>
+  </message>
+  <message name="slotid">
+    <parameter name="slotid" type="string"/>
   </message>
 
   <resource>
-    <resource relative="push">
+    <resource relative="send">
       <post in="message"/>
     </resource>
-    <resource relative="fetch">
-      <get in="criteria"/>
-      <delete in="criteria_del"/>
+    <resource relative="receive">
+      <get in="criteria" out="slot"/>
+      <delete in="slotid"/>
     </resource>
   </resource>
 </description>

@@ -34,7 +34,7 @@ class Condition < Riddl::Implementation
     if redis.exists(mess)
       val = redis.get(mess)
       redis.del(mess)
-      SendCallback::send @h['CPEE_CALLBACK'], val
+      Riddl::Parameter::Complex.new('message','application/json',JSON.generate({ "message" => val, "delivery" => 'source' }))
     else
       uuid = SecureRandom.uuid
       redis.multi
@@ -45,9 +45,9 @@ class Condition < Riddl::Implementation
         redis.set("value:ttl:#{uuid}",(Time.now + @p[1].value.to_i).to_i)
       end
       redis.exec
+      @headers << Riddl::Header.new('CPEE_CALLBACK','true')
+      Riddl::Parameter::Simple.new("slotid",uuid)
     end
-    @headers << Riddl::Header.new('CPEE_CALLBACK','true')
-    Riddl::Parameter::Simple.new("uuid",uuid)
   end
 end
 
@@ -67,7 +67,8 @@ class DeleteCondition < Riddl::Implementation
     redis.lrem("condition:#{cond}",0,uuid)
     redis.exec
 
-    SendCallback::send cb, '', 'deleted'
+    SendCallback::send cb, '', 'deleted' unless cb.nil?
+    nil
   end
 end
 
@@ -80,6 +81,8 @@ class Message < Riddl::Implementation #{{{
       while uuid = redis.lpop(cond)
         SendCallback::send redis.get("value:#{uuid}"), @p[1].value
         redis.del("value:#{uuid}")
+        redis.del("value:condition:#{uuid}")
+        redis.del("value:ttl:#{uuid}")
       end
     else
       uuid = SecureRandom.uuid
@@ -95,7 +98,7 @@ end #}}}
 
 options = {
   :host => 'centurio.work',
-  :port => 9308,
+  :port => 9311,
   :secure => false
 }
 
@@ -106,12 +109,12 @@ Riddl::Server.new(File.join(__dir__,'/message.xml'), options) do |opts|
   opts[:redis] = Redis.new(path: "/tmp/redis.sock", db: 10)
 
   on resource do
-    on resource 'push' do
-      run Message opts[:redis] if post 'message'
+    on resource 'send' do
+      run Message, opts[:redis] if post 'message'
     end
-    on resource 'fetch' do
+    on resource 'receive' do
       run Condition, opts[:redis] if get 'criteria'
-      run DeleteCondition, opts[:redis] if delete 'criteria_del'
+      run DeleteCondition, opts[:redis] if delete 'slotid'
     end
   end
 end.loop!
