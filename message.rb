@@ -96,13 +96,7 @@ class Message < Riddl::Implementation #{{{
   end
 end #}}}
 
-options = {
-  :host => 'centurio.work',
-  :port => 9311,
-  :secure => false
-}
-
-Riddl::Server.new(File.join(__dir__,'/message.xml'), options) do |opts|
+Riddl::Server.new(File.join(__dir__,'/message.xml', :host => 'localhost', :port => 9311), options) do |opts|
   accessible_description true
   cross_site_xhr true
 
