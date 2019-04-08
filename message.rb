@@ -96,7 +96,7 @@ class Message < Riddl::Implementation #{{{
   end
 end #}}}
 
-Riddl::Server.new(File.join(__dir__,'/message.xml', :host => 'localhost', :port => 9311), options) do |opts|
+Riddl::Server.new(File.join(__dir__,'/message.xml'), :host => 'localhost', :port => 9311) do |opts|
   accessible_description true
   cross_site_xhr true
 
