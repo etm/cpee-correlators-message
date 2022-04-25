@@ -77,20 +77,20 @@ class Message < Riddl::Implementation #{{{
     redis = @a[0]
     cond  = "condition:" + @p[0].value
 
+    uuid = SecureRandom.uuid
+    mess = "message:" + @p[0].value
+    if @p[2].value.to_i > 0
+      redis.setex(mess,@p[2].value.to_i,@p[1].value)
+    else
+      redis.set(mess,604800,@p[1].value)
+    end
+
     if redis.exists(cond)
       while uuid = redis.lpop(cond)
         SendCallback::send redis.get("value:#{uuid}"), @p[1].value
         redis.del("value:#{uuid}")
         redis.del("value:condition:#{uuid}")
         redis.del("value:ttl:#{uuid}")
-      end
-    else
-      uuid = SecureRandom.uuid
-      mess = "message:" + @p[0].value
-      if @p[2].value.to_i > 0
-        redis.setex(mess,@p[2].value.to_i,@p[1].value)
-      else
-        redis.set(mess,@p[1].value)
       end
     end
   end
