@@ -26,6 +26,9 @@
   <message name="criteria">
     <parameter name="id" type="string"/>
     <parameter name="ttl" type="nonNegativeInteger"/>
+    <optional>
+      <parameter name="delete" type="boolean"/>
+    </optional>
   </message>
   <message name="slot">
     <choice>

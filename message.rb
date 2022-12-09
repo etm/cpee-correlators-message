@@ -30,10 +30,11 @@ class Condition < Riddl::Implementation
   def response
     redis = @a[0]
     mess  = "message:" + @p[0].value
+    del = (@p[2].value == 'true' ? true : false) rescue true
 
     if redis.exists?(mess)
       val = redis.get(mess)
-      redis.del(mess)
+      redis.del(mess) if del
       Riddl::Parameter::Complex.new('message','application/json',JSON.generate({ "message" => val, "delivery" => 'source' }))
     else
       uuid = SecureRandom.uuid
@@ -41,6 +42,7 @@ class Condition < Riddl::Implementation
       redis.rpush("condition:" + @p[0].value,uuid)
       redis.set("value:#{uuid}",@h['CPEE_CALLBACK'])
       redis.set("value:condition:#{uuid}",@p[0].value)
+      redis.set("value:del:#{uuid}",del)
       if @p[1].value.to_i > 0
         redis.set("value:ttl:#{uuid}",(Time.now + @p[1].value.to_i).to_i)
       end
@@ -62,6 +64,7 @@ class DeleteCondition < Riddl::Implementation
     redis.multi
     redis.del("value:condition:#{uuid}")
     redis.del("value:ttl:#{uuid}")
+    redis.del("value:del:#{uuid}")
     redis.del("value:#{uuid}")
     redis.del("con:#{uuid}")
     redis.lrem("condition:#{cond}",0,uuid)
@@ -77,21 +80,28 @@ class Message < Riddl::Implementation #{{{
     redis = @a[0]
     cond  = "condition:" + @p[0].value
 
+    uuid = SecureRandom.uuid
+    mess = "message:" + @p[0].value
+    if @p[2].value.to_i > 0
+      redis.setex(mess,@p[2].value.to_i,@p[1].value)
+    else
+      redis.setex(mess,604800,@p[1].value)
+    end
+
+    mdel = false
     if redis.exists?(cond)
       while uuid = redis.lpop(cond)
         SendCallback::send redis.get("value:#{uuid}"), @p[1].value
+        del = redis.get("value:del:#{uuid}") == 'true' ? true : false
+        mdel = true if del
+        redis.multi
+        redis.del("value:del:#{uuid}")
         redis.del("value:#{uuid}")
         redis.del("value:condition:#{uuid}")
         redis.del("value:ttl:#{uuid}")
+        redis.exec
       end
-    else
-      uuid = SecureRandom.uuid
-      mess = "message:" + @p[0].value
-      if @p[2].value.to_i > 0
-        redis.setex(mess,@p[2].value.to_i,@p[1].value)
-      else
-        redis.set(mess,@p[1].value)
-      end
+      redis.del(mess) if mdel
     end
   end
 end #}}}
