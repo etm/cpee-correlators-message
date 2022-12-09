@@ -31,7 +31,7 @@ class Condition < Riddl::Implementation
     redis = @a[0]
     mess  = "message:" + @p[0].value
 
-    if redis.exists(mess)
+    if redis.exists?(mess)
       val = redis.get(mess)
       redis.del(mess)
       Riddl::Parameter::Complex.new('message','application/json',JSON.generate({ "message" => val, "delivery" => 'source' }))
@@ -77,7 +77,7 @@ class Message < Riddl::Implementation #{{{
     redis = @a[0]
     cond  = "condition:" + @p[0].value
 
-    if redis.exists(cond)
+    if redis.exists?(cond)
       while uuid = redis.lpop(cond)
         SendCallback::send redis.get("value:#{uuid}"), @p[1].value
         redis.del("value:#{uuid}")
