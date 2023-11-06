@@ -38,15 +38,15 @@ class Condition < Riddl::Implementation
       Riddl::Parameter::Complex.new('message','application/json',JSON.generate({ "message" => val, "delivery" => 'source' }))
     else
       uuid = SecureRandom.uuid
-      redis.multi
-      redis.rpush("condition:" + @p[0].value,uuid)
-      redis.set("value:#{uuid}",@h['CPEE_CALLBACK'])
-      redis.set("value:condition:#{uuid}",@p[0].value)
-      redis.set("value:del:#{uuid}",del)
-      if @p[1].value.to_i > 0
-        redis.set("value:ttl:#{uuid}",(Time.now + @p[1].value.to_i).to_i)
+      redis.multi do |multi|
+        multi.rpush("condition:" + @p[0].value,uuid)
+        multi.set("value:#{uuid}",@h['CPEE_CALLBACK'])
+        multi.set("value:condition:#{uuid}",@p[0].value)
+        multi.set("value:del:#{uuid}",del)
+        if @p[1].value.to_i > 0
+          multi.set("value:ttl:#{uuid}",(Time.now + @p[1].value.to_i).to_i)
+        end
       end
-      redis.exec
       @headers << Riddl::Header.new('CPEE_CALLBACK','true')
       Riddl::Parameter::Simple.new("slotid",uuid)
     end
@@ -61,14 +61,14 @@ class DeleteCondition < Riddl::Implementation
     cond = redis.get("value:condition:#{uuid}")
     cb   = redis.get("value:#{uuid}")
 
-    redis.multi
-    redis.del("value:condition:#{uuid}")
-    redis.del("value:ttl:#{uuid}")
-    redis.del("value:del:#{uuid}")
-    redis.del("value:#{uuid}")
-    redis.del("con:#{uuid}")
-    redis.lrem("condition:#{cond}",0,uuid)
-    redis.exec
+    redis.multi do |multi|
+      multi.del("value:condition:#{uuid}")
+      multi.del("value:ttl:#{uuid}")
+      multi.del("value:del:#{uuid}")
+      multi.del("value:#{uuid}")
+      multi.del("con:#{uuid}")
+      multi.lrem("condition:#{cond}",0,uuid)
+    end
 
     SendCallback::send cb, '', 'deleted' unless cb.nil?
     nil
@@ -94,12 +94,12 @@ class Message < Riddl::Implementation #{{{
         SendCallback::send redis.get("value:#{uuid}"), @p[1].value
         del = redis.get("value:del:#{uuid}") == 'true' ? true : false
         mdel = true if del
-        redis.multi
-        redis.del("value:del:#{uuid}")
-        redis.del("value:#{uuid}")
-        redis.del("value:condition:#{uuid}")
-        redis.del("value:ttl:#{uuid}")
-        redis.exec
+        redis.multi do |multi|
+          multi.del("value:del:#{uuid}")
+          multi.del("value:#{uuid}")
+          multi.del("value:condition:#{uuid}")
+          multi.del("value:ttl:#{uuid}")
+        end
       end
       redis.del(mess) if mdel
     end
