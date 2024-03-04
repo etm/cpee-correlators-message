@@ -94,19 +94,11 @@ class Message < Riddl::Implementation #{{{
         SendCallback::send redis.get("value:#{uuid}"), @p[1].value
         del = redis.get("value:del:#{uuid}") == 'true' ? true : false
         mdel = true if del
-<<<<<<< HEAD
-        redis.multi do |rm|
-          rm.del("value:del:#{uuid}")
-          rm.del("value:#{uuid}")
-          rm.del("value:condition:#{uuid}")
-          rm.del("value:ttl:#{uuid}")
-=======
         redis.multi do |multi|
           multi.del("value:del:#{uuid}")
           multi.del("value:#{uuid}")
           multi.del("value:condition:#{uuid}")
           multi.del("value:ttl:#{uuid}")
->>>>>>> de3bf82fce9eff686d877d7f3d96c0808a96e6b1
         end
       end
       redis.del(mess) if mdel
