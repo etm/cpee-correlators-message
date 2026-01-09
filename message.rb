@@ -21,6 +21,7 @@ require 'riddl/server'
 require 'riddl/client'
 require 'securerandom'
 require 'redis'
+require 'cpee/redis'
 
 require_relative 'includes/send'
 
@@ -108,7 +109,40 @@ Riddl::Server.new(File.join(__dir__,'/message.xml'), :host => 'localhost', :port
   accessible_description true
   cross_site_xhr true
 
-  opts[:redis] = Redis.new(path: "/tmp/redis.sock", db: 10)
+  opts[:frequency] = 1
+
+  ### set redis_cmd to nil if you want to do global
+  ### at least redis_path or redis_url and redis_db have to be set if you do global
+  opts[:redis_path]                 ||= 'redis.sock' # use e.g. /tmp/redis.sock for global stuff. Look it up in your redis config
+  opts[:redis_db]                   ||= 0
+  ### optional redis stuff
+  opts[:redis_url]                  ||= nil
+  opts[:redis_cmd]                  ||= 'redis-server --port 0 --unixsocket #redis_path# --unixsocketperm 600 --pidfile #redis_pid# --dir #redis_db_dir# --dbfilename #redis_db_name# --databases 1 --save 900 1 --save 300 10 --save 60 10000 --rdbcompression yes --daemonize yes'
+  opts[:redis_pid]                  ||= 'redis.pid' # use e.g. /var/run/redis.pid if you do global. Look it up in your redis config
+  opts[:redis_db_name]              ||= 'redis.rdb' # use e.g. /var/lib/redis.rdb for global stuff. Look it up in your redis config
+
+  CPEE::redis_connect opts, 'Server Main'
+
+  parallel do
+    EM.add_periodic_timer(opts[:frequency]) do
+      opts[:redis].scan_each(:match => "value:ttl:*") do |key|
+        uuid = key[10..-1]
+
+        cond = redis.get("value:condition:#{uuid}")
+        cb   = redis.get("value:#{uuid}")
+
+        redis.multi do |multi|
+          multi.del("value:condition:#{uuid}")
+          multi.del("value:ttl:#{uuid}")
+          multi.del("value:#{uuid}")
+          multi.del("con:#{uuid}")
+          multi.lrem("condition:#{cond}",0,uuid)
+        end
+
+        SendCallback::send cb, '', 'expired'
+      end
+    end
+  end
 
   on resource do
     on resource 'send' do
