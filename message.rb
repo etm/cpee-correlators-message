@@ -1,28 +1,26 @@
 #!/usr/bin/ruby
 #
-# This file is part of centurio.work/ing/correlators/message
+# This file is part of CPEE-CORRELATORS-MESSAGE.
 #
-# centurio.work/ing/correlators/message is free software: you can redistribute
-# it and/or modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation, either version 3 of the License,
-# or (at your option) any later version.
+# CPEE-CORRELATORS-MESSAGE is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
 #
-# centurio.work/ing/correlators/message is distributed in the hope that it will
-# be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+# CPEE-CORRELATORS-MESSAGE is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
 # Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# centurio.work/ing/correlators/message (file COPYING in the main directory). If
-# not, see <http://www.gnu.org/licenses/>.
+# CPEE-CORRELATORS-MESSAGE (file LICENSE in the main directory). If not, see
+# <http://www.gnu.org/licenses/>.
 
-require 'rubygems'
 require 'json'
 require 'riddl/server'
 require 'riddl/client'
 require 'securerandom'
 require 'redis'
-require 'pp'
 
 require_relative 'includes/send'
 
