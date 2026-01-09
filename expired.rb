@@ -33,13 +33,13 @@ Daemonite.new do |opts|
       cond = redis.get("value:condition:#{uuid}")
       cb   = redis.get("value:#{uuid}")
 
-      redis.multi
-      redis.del("value:condition:#{uuid}")
-      redis.del("value:ttl:#{uuid}")
-      redis.del("value:#{uuid}")
-      redis.del("con:#{uuid}")
-      redis.lrem("condition:#{cond}",0,uuid)
-      redis.exec
+      redis.multi do |multi|
+        multi.del("value:condition:#{uuid}")
+        multi.del("value:ttl:#{uuid}")
+        multi.del("value:#{uuid}")
+        multi.del("con:#{uuid}")
+        multi.lrem("condition:#{cond}",0,uuid)
+      end
 
       SendCallback::send cb, '', 'expired'
     end
